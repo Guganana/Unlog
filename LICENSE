@@ -1,0 +1,12 @@
+Copyright 2023 Guganana. All Rights Reserved.
+Unlog Software Library License
+
+Permission is hereby granted to use this software free of charge for non-commercial purposes as well as for commercial purposes in which the overarching project integrating this library does not exceed a budget or revenue above $250000 — In case the dependant project exceeds this threshold, contact unlog@guganana.com to acquire a commercial license.
+
+Users may redistribute the software library "as is" within internal teams, or publicly when part of another software solution. Sharing of derivative versions of this library is also possible but are bound to the same license and shall not be transformed into a version that escapes these terms.
+
+Middleware software depending on this software library is considered its own project and will not incur any responsibilities onto the end-user or the software depending on the middleware.   
+
+The free software is provided without warranty and the license terms may be revised to include new information throughout the continued development of the software.
+
+All redistributions should include a copy of this notice.
