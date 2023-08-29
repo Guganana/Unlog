@@ -35,13 +35,13 @@ struct TFormatOptions
 
 #if UNLOG_ENABLED
 #define UNLOG_DECLARE_CATEGORY_LOG_FUNCTION_CONDITIONALS( CategoryPicker, TargetOptions, FunctionName, VerbosityName, IsPrintf ) \
-    template<typename TCategory = typename CategoryPicker, typename FMT, typename... ArgTypes> \
+    template<typename TCategory = CategoryPicker, typename FMT, typename... ArgTypes> \
     FORCEINLINE static void FunctionName(const FMT& Format, ArgTypes... Args)\
     {\
         using Configuration = TStaticConfiguration< TFormatOptions<IsPrintf>, CategoryPicker, TargetOptions >;\
         Unlogger::Get().UnlogPrivateImpl< Configuration >(Format, ELogVerbosity::VerbosityName, Args...);\
     }\
-    template<typename TCategory = typename CategoryPicker, typename FMT, typename... ArgTypes>\
+    template<typename TCategory = CategoryPicker, typename FMT, typename... ArgTypes>\
     FORCEINLINE static void FunctionName(const bool Condition, const FMT& Format, ArgTypes... Args)\
     {\
         if(Condition)\
@@ -50,7 +50,7 @@ struct TFormatOptions
             Unlogger::Get().UnlogPrivateImpl< Configuration >(Format, ELogVerbosity::VerbosityName, Args...);\
         }\
     }\
-    template<typename TCategory = typename CategoryPicker, typename FMT, typename... ArgTypes>\
+    template<typename TCategory = CategoryPicker, typename FMT, typename... ArgTypes>\
     FORCEINLINE static void FunctionName(const TFunction<bool()>& LambdaCondition, const FMT& Format, ArgTypes... Args)\
     {\
         FunctionName( LambdaCondition(), Format, Args... );\
@@ -119,21 +119,6 @@ public:
     }
 };
 
-#if UNLOG_ENABLED
-template< typename TCategory >
-struct FUnlogScopedCategory
-{
-    FUnlogScopedCategory()
-    {
-        Unlogger::Get().PushCategory(TCategory::Static());
-    }
-
-    ~FUnlogScopedCategory()
-    {
-        Unlogger::Get().PopCategory();
-    }
-};
-#endif
 
 #if UNLOG_ENABLED
 /**
@@ -408,14 +393,14 @@ public:
         PushedCategories.Pop();
     }
 
-    FORCEINLINE const TCHAR* ResolveString(const TCHAR* Format)
+    FORCEINLINE static FString StringFormat(const TCHAR* Format, const FStringFormatOrderedArguments& Args)
     {
-        return Format;
+        return FString::Format(Format, Args);
     }
 
-    FORCEINLINE const TCHAR* ResolveString(const char* Format)
+    FORCEINLINE static FString StringFormat(const char* Format, const FStringFormatOrderedArguments& Args)
     {
-        return UTF8_TO_TCHAR(Format);
+        return FString::Format( UTF8_TO_TCHAR(Format), Args);
     }
 
 
@@ -438,7 +423,7 @@ public:
     FORCEINLINE typename TEnableIf<!FormatOptions::IsPrintfFormat, FString>::Type  ProcessFormatString(const FMT& Format, ArgTypes... Args)
     {
         static_assert(TAnd<TIsConstructible<FStringFormatArg, ArgTypes>...>::Value, "Invalid argument type passed to UnlogPrivateImpl");
-        return FString::Format(ResolveString(Format), FStringFormatOrderedArguments({ Args... }));
+        return Unlogger::StringFormat( Format, FStringFormatOrderedArguments({ Args... }) );
     }
 
     // Use Printf format
@@ -456,12 +441,12 @@ public:
     template<typename StaticConfiguration, typename FMT, typename... ArgTypes>
     void UnlogPrivateImpl(const FMT& Format, ELogVerbosity::Type Verbosity, ArgTypes... Args)
     {
-        const auto& Category = PickCategory<StaticConfiguration::CategoryPicker>();
+        const auto& Category = PickCategory< typename StaticConfiguration::CategoryPicker>();
         FName CategoryName = Category.GetName();
 
         if (Verbosity <= Category.GetVerbosity() && Verbosity != ELogVerbosity::NoLogging)
         {
-            FString Result = ProcessFormatString<StaticConfiguration::FormatOptions>(Format, Args...);
+            FString Result = ProcessFormatString<typename StaticConfiguration::FormatOptions>(Format, Args...);
 
             // Execute all static targets
             StaticConfiguration::TargetOptions::Call(Category, Verbosity, Result);
@@ -469,6 +454,22 @@ public:
     }
 };
 #endif // UNLOG_ENABLED
+
+#if UNLOG_ENABLED
+template< typename TCategory >
+struct FUnlogScopedCategory
+{
+    FUnlogScopedCategory()
+    {
+        Unlogger::Get().PushCategory(TCategory::Static());
+    }
+
+    ~FUnlogScopedCategory()
+    {
+        Unlogger::Get().PopCategory();
+    }
+};
+#endif
 
 // ------------------------------------------------------------------------------------
 // Contexts (Experimental)
@@ -646,17 +647,17 @@ namespace Target
 template< typename TCategory >
 struct TSpecificCategory
 {
-    static UnlogCategoryBase* PickCategory(UnlogCategoryBase*& InOutCategory)
+    static void PickCategory(UnlogCategoryBase*& InOutCategory)
     {
         InOutCategory = &TCategory::Static();
     }
 };
 
 // Try to infer the category (i.e using the scope) but can also specify which category to fallback to
-template< typename TFallbackCategory = typename LogGeneral >
+template< typename TFallbackCategory = LogGeneral >
 struct TDeriveCategory
 {
-    static UnlogCategoryBase* PickCategory(UnlogCategoryBase*& InOutCategory)
+    static void PickCategory(UnlogCategoryBase*& InOutCategory)
     {
         // Only populate with default category if it's not already derived
         if (InOutCategory == nullptr)
@@ -703,12 +704,12 @@ struct TUnlog
     using WithCategory = TUnlog< InTargetOptions, TSpecificCategory<InCategory> >;
 
     // Logging functions generation
-    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Log, Log)
-    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Warn, Warning)
-    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Error, Error)
-    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Display, Display)
-    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Verbose, Verbose)
-    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, VeryVerbose, VeryVerbose)
+    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(CategoryPicker, TargetOptions, Log, Log)
+    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(CategoryPicker, TargetOptions, Warn, Warning)
+    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(CategoryPicker, TargetOptions, Error, Error)
+    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(CategoryPicker, TargetOptions, Display, Display)
+    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(CategoryPicker, TargetOptions, Verbose, Verbose)
+    UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(CategoryPicker, TargetOptions, VeryVerbose, VeryVerbose)
 };
 
 // ------------------------------------------------------------------------------------
@@ -724,8 +725,8 @@ namespace UnlogMacroHelpers
     {
         using Configuration = TStaticConfiguration<
             TFormatOptions<IsPrintfFormat>,
-            MacroOptions::UnlogOptions::CategoryPicker,
-            MacroOptions::UnlogOptions::TargetOptions
+            typename MacroOptions::UnlogOptions::CategoryPicker,
+            typename MacroOptions::UnlogOptions::TargetOptions
         >;
 
         Unlogger::Get().UnlogPrivateImpl<Configuration>(Format, InVerbosity, Args...);
@@ -754,7 +755,7 @@ namespace UnlogMacroHelpers
     struct TMacroArgs< TUnlogSettings< TargetOptions, CategoryPicker> >
     {
         template< typename TBaseSettings >
-        using GetSettings = typename TUnlog< TargetOptions, CategoryPicker>;
+        using GetSettings = TUnlog< TargetOptions, CategoryPicker>;
     };
 
     // Matches when passing just a category
@@ -762,7 +763,7 @@ namespace UnlogMacroHelpers
     struct TMacroArgs<TCategory>
     {
         template< typename TBaseSettings >
-        using GetSettings = typename TUnlog< typename TBaseSettings::TargetOptions, TSpecificCategory<TCategory> >;
+        using GetSettings = TUnlog< typename TBaseSettings::TargetOptions, TSpecificCategory<TCategory> >;
     };
 
     // Default match, don't override any settings.
@@ -782,7 +783,7 @@ namespace UnlogMacroHelpers
 #if UNLOG_ENABLED
 
 #define PRIV_EXPAND( A ) A
-#define PRIV_UNLOG_PARAMS( Message, ... ) ( TEXT( Message ), __VA_ARGS__ )
+#define PRIV_UNLOG_PARAMS( Message, ... ) ( TEXT( Message ), ##__VA_ARGS__ )
 #define PRIV_MACRO_BASED_ON_ARG_NUM( _1, _2, FUNCTION, ... ) FUNCTION
 
 // One parameter matches UNLOG( Verbosity )
@@ -796,8 +797,7 @@ namespace UnlogMacroHelpers
 
 #define PRIV_UNLOG_IMPL(IsPrintfFormat, ...) \
     PRIV_EXPAND( \
-        PRIV_MACRO_BASED_ON_ARG_NUM(##__VA_ARGS__## , PRIV_UNLOG_TwoParams, PRIV_UNLOG_OneParam) (IsPrintfFormat, __VA_ARGS__) \
-    )
+        PRIV_MACRO_BASED_ON_ARG_NUM( __VA_ARGS__ , PRIV_UNLOG_TwoParams, PRIV_UNLOG_OneParam) ( IsPrintfFormat, __VA_ARGS__ ) )
 
 /**
 * Uses a particular syntax that separates the logging options from its contents
