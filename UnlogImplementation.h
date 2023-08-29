@@ -3,24 +3,16 @@
 #pragma once
 
 #include <CoreMinimal.h>
-#include <Developer/MessageLog/Public/MessageLogModule.h>
-#include <Developer/MessageLog/Public/IMessageLogListing.h>
-#include <DrawDebugHelpers.h>
-#include <Modules/ModuleManager.h>
-#include <VisualLogger.h>
 
-
-#define UNLOG_VERSION TEXT("1.0")
+#define UNLOG_VERSION TEXT("0.1")
 #define UNLOG_ENABLED (!UE_BUILD_SHIPPING)
-
 #define UNLOG_COMPILED_OUT  
-
-// TODO FORCEINLINE all possible
 
 // ------------------------------------------------------------------------------------
 // Static Generation Helpers
 // Templated structs used to select the appropriate template variations when 
 // ------------------------------------------------------------------------------------
+
 template< typename InFormatOptions, typename InCategoryPicker, typename InTargetOptions >
 struct TStaticConfiguration
 {
@@ -65,8 +57,8 @@ struct TFormatOptions
     }
 #else
 #define UNLOG_DECLARE_CATEGORY_LOG_FUNCTION_CONDITIONALS( CategoryPicker, TargetOptions, FunctionName, VerbosityName, IsPrintf ) \
-    template< typename... TAllArgTypes > \
-    FORCEINLINE static void FunctionName(TAllArgTypes... Args){}
+    template< typename... TemplateArgs,typename... TArgs > \
+    FORCEINLINE static void FunctionName(TArgs... Args){}
 #endif // UNLOG_ENABLED
 
 #define UNLOG_DECLARE_CATEGORY_LOG_FUNCTION( CategoryPicker, TargetOptions, FunctionName, VerbosityName )\
@@ -121,7 +113,7 @@ public:
         return Type;
     }
 
-    static void PickCategory( UnlogCategoryBase*& InOutCategory )
+    static void PickCategory(UnlogCategoryBase*& InOutCategory)
     {
         InOutCategory = &Static();
     }
@@ -165,126 +157,11 @@ friend class UnlogCategoryCRTP< CategoryName >;\
     UNLOG_CATEGORY(CategoryName) \
     UNLOG_CATEGORY_PUSH(CategoryName)
 
-
 // Create the default category used by Unlog
 UNLOG_CATEGORY(LogGeneral)
 
-
-
 // ------------------------------------------------------------------------------------
-// Contexts (Experimental)
-// 
-// Tracks when the program has entered a specific "context", able to be queried 
-// by another system later down the callstack to selectively exclude certain log calls
-// without creating a direct dependency between systems to query state.
-// 
-// e.g. Ignore logging a widget when part of the editor callstack
-// 
-// Could technically be repurposed to selectively run other code besides logging.
-// ------------------------------------------------------------------------------------
-
-template <typename ActualType>
-class UnlogContextBase
-{
-public:
-
-    UnlogContextBase(const FName& InName)
-        : ContextName(InName)
-        , Counter(0u)
-    {}
-
-    FORCEINLINE static ActualType& Static()
-    {
-        static ActualType Type = ActualType::Construct();
-        return Type;
-    }
-
-    FORCEINLINE const FName& GetName() const
-    {
-        return ContextName;
-    }
-
-    FORCEINLINE void IncrementCounter()
-    {
-        Counter++;
-    }
-
-    FORCEINLINE void DecrementCounter()
-    {
-        check(Counter > 0u);
-        Counter--;
-    }
-
-    FORCEINLINE bool IsActive() const
-    {
-        return Counter > 0u;
-    }
-
-    template< typename Functor >
-    FORCEINLINE static void WhenActive(Functor Func)
-    {
-        if (ActualType::Static().IsActive())
-        {
-            Func();
-        }
-    }
-
-    template< typename Functor >
-    FORCEINLINE static void WhenNotActive(Functor Func)
-    {
-        if (!ActualType::Static().IsActive())
-        {
-            Func();
-        }
-    }
-
-private:
-    FName ContextName;
-    uint32 Counter;
-};
-
-template <typename ActualType>
-class UnloggerScopedContext
-{
-private:
-    bool Value;
-public:
-    UnloggerScopedContext(bool InValue)
-        : Value(InValue)
-    {
-        if (Value)
-        {
-            ActualType::Static().IncrementCounter();
-        }
-    }
-
-    ~UnloggerScopedContext()
-    {
-        if (Value)
-        {
-            ActualType::Static().DecrementCounter();
-        }
-    }
-
-};
-
-
-#define UNLOG_CONTEXT(ContextName) \
-class ContextName : public UnlogContextBase< ContextName > \
-{\
-public:\
-    using UnlogContextBase< ContextName >::UnlogContextBase; \
-    static ContextName Construct()\
-    {\
-        return ContextName( TEXT( #ContextName ) );\
-    }\
-};
-
-#define scopedcontext(ContextName, ContextValue) \
-UnloggerScopedContext< ContextName > ScopedContext_##ContextName( ContextValue )
-
-// ------------------------------------------------------------------------------------
-// Runtime Settings and Targets (Experimental)
+// Runtime Settings and Runtime Targets (Experimental)
 // ------------------------------------------------------------------------------------
 
 class UnlogRuntimeTargetBase
@@ -383,7 +260,7 @@ const int32 SetGlobalUnlogSettings< SettingsName >::Initializer = [] { Unlogger:
 // Sending a single telemetry event on the first time the logger is used, we try to
 // include as little data as possible while still giving us valuable information to
 // gauge the usage and version distribution of Unlog. This helps us make better and 
-// morinformed decisions on how to improve.
+// more informed decisions on how to improve.
 // ------------------------------------------------------------------------------------
 #if WITH_EDITOR && UNLOG_ENABLED
 class FTelemetryDispatcher
@@ -479,9 +356,8 @@ private:
 #endif // WITH_EDITOR && UNLOG_ENABLED
 
 // ------------------------------------------------------------------------------------
-// Unlog internals
+// Unlog runtime
 // ------------------------------------------------------------------------------------
-
 #if UNLOG_ENABLED
 class Unlogger
 {
@@ -512,7 +388,7 @@ public:
         return Logger;
     }
 
-    template< typename TSettings > 
+    template< typename TSettings >
     static void ApplyRuntimeSettings()
     {
         Unlogger::Get().ApplyRuntimeSettingsInternal<TSettings>();
@@ -558,7 +434,7 @@ public:
     }
 
     // Use ordered arguments format
-    template< 
+    template<
         typename FormatOptions,
         typename FMT,
         typename... ArgTypes >
@@ -578,7 +454,7 @@ public:
         static_assert(!TIsArrayOrRefOfType<FMT, char>::Value, "Unlog's printf style functions only support text wrapped by TEXT()");
         FString Result = FString::Printf(Format, Args...);
         return Result;
-    }   
+    }
 
     template<typename StaticConfiguration, typename FMT, typename... ArgTypes>
     void UnlogPrivateImpl(const FMT& Format, ELogVerbosity::Type Verbosity, ArgTypes... Args)
@@ -586,10 +462,10 @@ public:
         const auto& Category = PickCategory<StaticConfiguration::CategoryPicker>();
         FName CategoryName = Category.GetName();
 
-        if (Verbosity <= Category.GetVerbosity() && Verbosity != ELogVerbosity::NoLogging )
+        if (Verbosity <= Category.GetVerbosity() && Verbosity != ELogVerbosity::NoLogging)
         {
             FString Result = ProcessFormatString<StaticConfiguration::FormatOptions>(Format, Args...);
-        
+
             // Execute all static targets
             StaticConfiguration::TargetOptions::Call(Category, Verbosity, Result);
         }
@@ -598,12 +474,126 @@ public:
 #endif // UNLOG_ENABLED
 
 // ------------------------------------------------------------------------------------
+// Contexts (Experimental)
+// 
+// Tracks when the program has entered a specific "context", able to be queried 
+// by another system later down the callstack to selectively exclude certain log calls
+// without creating a direct dependency between systems to query state.
+// 
+// e.g. Ignore logging a widget when part of the editor callstack
+// 
+// Could technically be repurposed to selectively run other code besides logging.
+// ------------------------------------------------------------------------------------
+
+template <typename ActualType>
+class UnlogContextBase
+{
+public:
+
+    UnlogContextBase(const FName& InName)
+        : ContextName(InName)
+        , Counter(0u)
+    {}
+
+    FORCEINLINE static ActualType& Static()
+    {
+        static ActualType Type = ActualType::Construct();
+        return Type;
+    }
+
+    FORCEINLINE const FName& GetName() const
+    {
+        return ContextName;
+    }
+
+    FORCEINLINE void IncrementCounter()
+    {
+        Counter++;
+    }
+
+    FORCEINLINE void DecrementCounter()
+    {
+        check(Counter > 0u);
+        Counter--;
+    }
+
+    FORCEINLINE bool IsActive() const
+    {
+        return Counter > 0u;
+    }
+
+    template< typename Functor >
+    FORCEINLINE static void WhenActive(Functor Func)
+    {
+        if (ActualType::Static().IsActive())
+        {
+            Func();
+        }
+    }
+
+    template< typename Functor >
+    FORCEINLINE static void WhenNotActive(Functor Func)
+    {
+        if (!ActualType::Static().IsActive())
+        {
+            Func();
+        }
+    }
+
+private:
+    FName ContextName;
+    uint32 Counter;
+};
+
+#define UNLOG_CONTEXT(ContextName) \
+class ContextName : public UnlogContextBase< ContextName > \
+{\
+public:\
+    using UnlogContextBase< ContextName >::UnlogContextBase; \
+    static ContextName Construct()\
+    {\
+        return ContextName( TEXT( #ContextName ) );\
+    }\
+};
+
+template <typename TContext >
+struct UnloggerScopedContextEntered
+{
+    UnloggerScopedContextEntered(bool InValue)
+        : Value(InValue)
+    {
+        if (Value)
+        {
+            TContext::Static().IncrementCounter();
+        }
+    }
+
+    UnloggerScopedContextEntered()
+        : UnloggerScopedContextEntered(true)
+    {}
+
+    ~UnloggerScopedContextEntered()
+    {
+        if (Value)
+        {
+            TContext::Static().DecrementCounter();
+        }
+    }
+private:
+    bool Value;
+};
+
+#define UNLOG_CONTEXT_ENTERED(ContextName, ...) \
+    UnloggerScopedContextEntered< ContextName > ScopedContext_##ContextName( __VA_ARGS__ )
+
+
+// ------------------------------------------------------------------------------------
 // Targets
 // 
 // Specifies where log messages should be routed to.
 // 
 // By default all messages are routed to FMsg::Log so it's as similar as executing 
-// UE_LOG. There's also a few other options like the GameScreen or the MessageLog.
+// UE_LOG. There's also a few other options like the Viewport or the MessageLog.
 // 
 // Multiple targets can be used by chaining them inside a TMultiTarget
 // ------------------------------------------------------------------------------------
@@ -611,8 +601,7 @@ namespace Target
 {
     /**
     * Combines multiple targets together.
-    * 
-    * e.g TMultiTarget< Target::UELog, Target::GameScreen>
+    * e.g: TMultiTarget< Target::UELog, Target::Viewport>
     */
     template< typename... TTargets >
     struct TMultiTarget
@@ -623,6 +612,7 @@ namespace Target
         }
     };
 
+    // Default logging target option just like UE_LOG
     struct UELog
     {
         static void Call(const UnlogCategoryBase& Category, ELogVerbosity::Type Verbosity, const FString& Message)
@@ -630,334 +620,250 @@ namespace Target
             FMsg::Logf(nullptr, 0, Category.GetName(), Verbosity, TEXT("%s"), *Message);
         }
     };
-    
-    struct MessageLog
-    {
-        static TSharedRef<IMessageLogListing> GetLogListing(FMessageLogModule& MessageLogModule, const FName& CategoryName)
-        {
-            auto Listing = MessageLogModule.GetLogListing(CategoryName);
-            Listing->SetLabel(FText::FromString(CategoryName.ToString()));
-            return Listing;
-        }
 
-        static EMessageSeverity::Type VerbosityToSeverity(ELogVerbosity::Type Verbosity)
-        {
-            switch (Verbosity)
-            {
-            case ELogVerbosity::Error:
-                return EMessageSeverity::Error;
-            case ELogVerbosity::Warning:
-                return EMessageSeverity::Warning;
-            }
-            return EMessageSeverity::Info;
-        }
-
-        static void Call(const UnlogCategoryBase& Category, ELogVerbosity::Type Verbosity, const FString& Message)
-        {
-            FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-
-            auto LogListing = GetLogListing(MessageLogModule, Category.GetName());
-            LogListing->AddMessage(
-                FTokenizedMessage::Create(
-                    VerbosityToSeverity(Verbosity),
-                    FText::FromString(Message)
-                )
-            );
-
-            if (Verbosity == ELogVerbosity::Error)
-            {
-                MessageLogModule.OpenMessageLog(Category.GetName());
-            }
-        }
-    };
-
-
+    /**
+    * Output messages to the in-game viewport.
+    * Both TimeOnScreen and Color are statically configurable
+    */
     template< int TimeOnScreen, const FColor& InColor >
-    struct TGameScreen
+    struct TViewport
     {
         static void Call(const UnlogCategoryBase& Category, ELogVerbosity::Type Verbosity, const FString& Message)
         {
             GEngine->AddOnScreenDebugMessage(INDEX_NONE, TimeOnScreen, InColor, Message);
         }
     };
-    using GameScreen = TGameScreen<3, FColor::Cyan>;
 
-    using Default = UELog;    
+    // Default viewport configuration - outputs the message on-screen for 3 seconds and colored in Cyan
+    using Viewport = TViewport<3, FColor::Cyan>;
+
+    using Default = UELog;
 }
 
+// ------------------------------------------------------------------------------------
+// Category pickers
+// 
+// Specifies the behaviour when the logger is picking which category to use.
+// ------------------------------------------------------------------------------------
+
+// Use a specific category represented by TCategory
 template< typename TCategory >
 struct TSpecificCategory
 {
-    static UnlogCategoryBase* PickCategory( UnlogCategoryBase*& InOutCategory )
+    static UnlogCategoryBase* PickCategory(UnlogCategoryBase*& InOutCategory)
     {
         InOutCategory = &TCategory::Static();
     }
 };
 
-template< typename TDefaultCategory = typename LogGeneral >
+// Try to infer the category (i.e using the scope) but can also specify which category to fallback to
+template< typename TFallbackCategory = typename LogGeneral >
 struct TDeriveCategory
 {
-    static UnlogCategoryBase* PickCategory( UnlogCategoryBase*& InOutCategory )
+    static UnlogCategoryBase* PickCategory(UnlogCategoryBase*& InOutCategory)
     {
         // Only populate with default category if it's not already derived
         if (InOutCategory == nullptr)
         {
-            InOutCategory = &TDefaultCategory::Static();
+            InOutCategory = &TFallbackCategory::Static();
         }
     }
 };
 
 // ------------------------------------------------------------------------------------
-// Unlog library
+// TUnlog
+// 
+// Lets you create your own logger using builder-like pattern.
+// 
+// Simple configuration:
+// using MyLogger = TUnlog<>;
 // ------------------------------------------------------------------------------------
-
-template<typename InTargetOptions = Target::Default , typename InCategoryPicker = TDeriveCategory<> >
+template<typename InTargetOptions = Target::Default, typename InCategoryPicker = TDeriveCategory<> >
 struct TUnlog
 {
     using CategoryPicker = InCategoryPicker;
     using TargetOptions = InTargetOptions;
 
+    /**
+    * Specify which targets to output the messages to overriding any previous configuration.
+    * Can use multiple targets.
+    */
     template< typename... Targets >
     using WithTargets = TUnlog< Target::TMultiTarget<Targets...>, InCategoryPicker >;
 
+    // Similar to WithTargets but comulative to whatever configuration it had before. 
     template< typename... Targets >
     using AddTarget = TUnlog< Target::TMultiTarget<InTargetOptions, Targets...>, InCategoryPicker >;
 
+    /**
+    * Specify the default category this logger should use without removing the ability 
+    * to derive the category if needed.
+    */ 
     template< typename InCategory >
     using WithDefaultCategory = TUnlog< InTargetOptions, TDeriveCategory<InCategory> >;
 
+    // Sets a specific category and removes any ability to infer the category
     template< typename InCategory >
     using WithCategory = TUnlog< InTargetOptions, TSpecificCategory<InCategory> >;
 
+    // Logging functions generation
     UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Log, Log)
     UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Warn, Warning)
     UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Error, Error)
     UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Display, Display)
     UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, Verbose, Verbose)
     UNLOG_DECLARE_CATEGORY_LOG_FUNCTION(InCategoryPicker, TargetOptions, VeryVerbose, VeryVerbose)
-
-    template< typename TVisualizer, typename... TArgs>
-    static void Debug( UObject* Owner, /*FName Name, */ TArgs... Args)
-    {
-    #if UNLOG_ENABLED
-        TVisualizer::Display(Owner, Args...);
-    #endif // UNLOG_ENABLED
-    }
-
 };
-
 
 // ------------------------------------------------------------------------------------
-//  Unlog macros 
+//  Unlog macros helpers
 // ------------------------------------------------------------------------------------
-
-template<typename MacroOptions, bool IsPrintfFormat, typename FMT, typename... TArgs>
-FORCEINLINE void UnlogMacroExpand(ELogVerbosity::Type InVerbosity, const FMT& Format, TArgs... Args)
-{
-    using Configuration = TStaticConfiguration< 
-        TFormatOptions<IsPrintfFormat>, 
-        MacroOptions::UnlogOptions::CategoryPicker,
-        MacroOptions::UnlogOptions::TargetOptions
-    >;
-
-    Unlogger::Get().UnlogPrivateImpl<Configuration>(Format, InVerbosity, Args...);
-}
-
-
-template<typename InMacroArgs, typename InTUnlog >
-struct TMacroOptions
-{
-    using UnlogOptions = typename InMacroArgs::template GetSettings<InTUnlog>;
-};
-
-
-template<typename... TArgs>
-struct TMacroArgs;
-
-template<template <typename, typename> class TUnlogSettings, typename TargetOptions, typename CategoryPicker >
-struct TMacroArgs< TUnlogSettings< TargetOptions, CategoryPicker> >
-{
-    template< typename TSourceSettings >
-    using GetSettings = typename TUnlog< TargetOptions, CategoryPicker>;
-};
-
-//template<template <typename> class TOuter, typename TCategory>
-//struct TMacroArgs<TOuter<TCategory>>
-//{
-//    template< typename TSourceSettings >
-//    using GetSettings = typename TUnlog< typename TSourceSettings::TargetOptions, TSpecificCategory<TOuter<TCategory>> >;
-//};
-
-template<typename TCategory>
-struct TMacroArgs<TCategory>
-{
-    template< typename TSourceSettings >
-    using GetSettings = typename TUnlog< typename TSourceSettings::TargetOptions, TSpecificCategory<TCategory> >;
-};
-
-template<>
-struct TMacroArgs<>
-{
-    template< typename TSourceSettings >
-    using GetSettings = TSourceSettings; //typename TUnlog< typename TSourceSettings::TargetOptions, TSpecificCategory<TCategory> >;
-};
-
-
-
-
-//template< typename TCategory, typename TUnlogSettings = Unlog >
-//struct TMacroOptions
-//{
-//    using UnlogOptions = TUnlog< typename TUnlogSettings::TargetOptions, TSpecificCategory< TCategory > >;
-//};
-//
-//template< typename... TSettingsArgs >
-//struct TMacroOptions< TDeriveCategory<>, TUnlog<TSettingsArgs...> >
-//{
-//    using UnlogOptions = TUnlog<TSettingsArgs...>;
-//};
-
-////
-////template<typename InTargetOptions, typename InCategoryPicker >
-////struct TMacroOptions<TUnlog<InTargetOptions, InCategoryPicker>>
-////{
-////    using TargetOptions = InTargetOptions;
-////    using CategoryOptions = InCategoryPicker;
-////};
-////
-////template<typename TCategory >
-////struct TMacroOptions<TCategory>
-////{
-////    using TargetOptions = Target::Default;
-////    using CategoryOptions = TSpecificCategory<TCategory>;
-////};
-//
-//template<>
-//struct TMacroOptions< TDeriveCategory<>, Unlog>
-//{
-//    using UnlogOptions = Unlog<>;
-//};
-
-#define EXPAND( ... ) __VA_ARGS__
 
 #if UNLOG_ENABLED
-#define UNLOG( InMacroArgs, VerbosityName, Message, ... ) \
-    UnlogMacroExpand< TMacroOptions< TMacroArgs< InMacroArgs >, Unlog >, false >( ELogVerbosity::VerbosityName, TEXT( Message ), ##__VA_ARGS__);
+namespace UnlogMacroHelpers
+{
+    // Inlined function when using any of the user-facing macro functions
+    template< bool IsPrintfFormat, typename MacroOptions, typename FMT, typename... TArgs>
+    FORCEINLINE void Run(ELogVerbosity::Type InVerbosity, const FMT& Format, TArgs... Args)
+    {
+        using Configuration = TStaticConfiguration<
+            TFormatOptions<IsPrintfFormat>,
+            MacroOptions::UnlogOptions::CategoryPicker,
+            MacroOptions::UnlogOptions::TargetOptions
+        >;
 
-#define UNLOGF( InMacroArgs, VerbosityName, Message, ... ) \
-    UnlogMacroExpand< TMacroOptions< TMacroArgs< InMacroArgs >, Unlog >, true >( ELogVerbosity::VerbosityName, TEXT( Message ), ##__VA_ARGS__);
+        Unlogger::Get().UnlogPrivateImpl<Configuration>(Format, InVerbosity, Args...);
+    }
 
-#define UNCLOG( Condition, InMacroArgs, VerbosityName, Message, ... ) \
-    if( Condition ) \
-    {\
-        UnlogMacroExpand< TMacroOptions< TMacroArgs< InMacroArgs >, Unlog >, false >( ELogVerbosity::VerbosityName, TEXT( Message ), ##__VA_ARGS__); \
+    template <bool IsPrintfFormat, ELogVerbosity::Type InVerbosity, typename MacroOptions, typename FMT, typename... TParms>
+    FORCEINLINE static void Run(const FMT& Format, TParms... Args)
+    {
+        Run<IsPrintfFormat, MacroOptions>(InVerbosity, Format, Args...);
     }
-#define UNCLOGF( Condition, InMacroArgs, VerbosityName, Message, ... ) \
-    if( Condition ) \
-    {\
-        UnlogMacroExpand< TMacroOptions< TMacroArgs< InMacroArgs >, Unlog >, true >( ELogVerbosity::VerbosityName, TEXT( Message ), ##__VA_ARGS__); \
-    }
-#else
-#define UNLOG(...) UNLOG_COMPILED_OUT
-#define UNLOGF(...) UNLOG_COMPILED_OUT
-#define UNCLOG(...) UNLOG_COMPILED_OUT
-#define UNCLOGF(...) UNLOG_COMPILED_OUT
+
+    // Helpers structure to hold the base configuration (usually the class named "Unlog")
+    // and any options overriding the base configuration
+    template<typename InMacroOverrides, typename TBaseUnlogSettings >
+    struct TMacroOptions
+    {
+        using UnlogOptions = typename InMacroOverrides::template GetSettings<TBaseUnlogSettings>;
+    };
+
+    // TMacroArgs is used to statically generate the appropriate settings when using the macros
+    template<typename... TArgs>
+    struct TMacroArgs;
+
+    // Matches when passing a TUnlog type settings
+    template<template <typename, typename> class TUnlogSettings, typename TargetOptions, typename CategoryPicker >
+    struct TMacroArgs< TUnlogSettings< TargetOptions, CategoryPicker> >
+    {
+        template< typename TBaseSettings >
+        using GetSettings = typename TUnlog< TargetOptions, CategoryPicker>;
+    };
+
+    // Matches when passing just a category
+    template<typename TCategory>
+    struct TMacroArgs<TCategory>
+    {
+        template< typename TBaseSettings >
+        using GetSettings = typename TUnlog< typename TBaseSettings::TargetOptions, TSpecificCategory<TCategory> >;
+    };
+
+    // Default match, don't override any settings.
+    template<>
+    struct TMacroArgs<>
+    {
+        template< typename TBaseSettings >
+        using GetSettings = TBaseSettings;
+    };
+};
 #endif // UNLOG_ENABLED
 
 // ------------------------------------------------------------------------------------
-// Debug Visualization ( Early prototype )
+//  Unlog Macros 
 // ------------------------------------------------------------------------------------
 
-namespace Viz
-{
-    // TODO check for shipping since drawdebug isn't available on shipping
-    // #define UNDEBUG( Type, ... ) Unlog::Debug< Viz::Type >( this, __VA_ARGS__ )
+#if UNLOG_ENABLED
 
-    FORCEINLINE void DrawLabel(UWorld* World, const FVector& Position, const FString& Label, const FString& Value)
-    {
-        auto CategoryName = LogGeneral::Static().GetName();
+#define PRIV_EXPAND( A ) A
+#define PRIV_UNLOG_PARAMS( Message, ... ) ( TEXT( Message ), __VA_ARGS__ )
+#define PRIV_MACRO_BASED_ON_ARG_NUM( _1, _2, FUNCTION, ... ) FUNCTION
 
-        const FString& Message = FString::Format(
-            TEXT("| Category: {0}\n")
-            TEXT("| Value: {1}\n")
-            TEXT("| {2}"),
-            { CategoryName.ToString(), Value, Label }
-        );
+// One parameter matches UNLOG( Verbosity )
+#define PRIV_UNLOG_OneParam( IsPrintfFormat, InVerbosity ) \
+    UnlogMacroHelpers::Run< IsPrintfFormat, ELogVerbosity::InVerbosity,UnlogMacroHelpers::TMacroOptions< UnlogMacroHelpers::TMacroArgs<>, Unlog > > PRIV_UNLOG_PARAMS
 
-        DrawDebugString(World, Position, Message, nullptr, FColor::White, -1.000000, false, 1.f);
+// Two parameters matches UNLOG( Category, Verbosity ) or UNLOG( Options, Verbosity ) 
+#define PRIV_UNLOG_TwoParams( IsPrintfFormat, OptionsOrCategory, InVerbosity ) \
+    UnlogMacroHelpers::Run< IsPrintfFormat, ELogVerbosity::InVerbosity, UnlogMacroHelpers::TMacroOptions< UnlogMacroHelpers::TMacroArgs< OptionsOrCategory >, Unlog > > PRIV_UNLOG_PARAMS
+
+
+#define PRIV_UNLOG_IMPL(IsPrintfFormat, ...) \
+    PRIV_EXPAND( \
+        PRIV_MACRO_BASED_ON_ARG_NUM(##__VA_ARGS__## , PRIV_UNLOG_TwoParams, PRIV_UNLOG_OneParam) (IsPrintfFormat, __VA_ARGS__) \
+    )
+
+/**
+* Uses a particular syntax that separates the logging options from its contents
+* Examples:
+* UNLOG( Error )( "Failed to validate object: {0}", Object->ToString() );
+* UNLOG( MySpecificCategory, Warning )( "Logging on a specific category" );
+* UNLOG( Unlog::WithTarget< Targets::Viewport >, Log )( "Using custom logger options");
+*/
+#define UNLOG(...)              PRIV_UNLOG_IMPL( false, __VA_ARGS__ )
+
+// Printf version of the UNLOG macro function
+#define UNLOGF(...)             PRIV_UNLOG_IMPL( true, __VA_ARGS__ )
+
+/**
+* Just like the UNLOG macro, but taking a condition as first argument
+* Condition is not evaluated if logging is disabled by the compiler
+*/
+#define UNCLOG(Condition, ...)  if(Condition) UNLOG( __VA_ARGS__ )
+
+// Printf version of the UNCLOG macro
+#define UNCLOGF(Condition, ...) if(Condition) UNLOGF( __VA_ARGS__ )
+
+#else
+#define UNLOG_PARAMS_EMPTY(...) 
+#define UNLOG(...) UNLOG_PARAMS_EMPTY
+#define UNLOGF(...) UNLOG_PARAMS_EMPTY
+#define UNCLOG(Condition, ...) UNLOG_PARAMS_EMPTY
+#define UNCLOGF(Condition, ...) UNLOG_PARAMS_EMPTY
+#endif // UNLOG_ENABLED
+
+// ------------------------------------------------------------------------------------
+//  Unlog Legacy Macros 
+// 
+//  Same syntax as UE_LOG and can be easily retrofited in codebases that were
+//  already using it.
+// ------------------------------------------------------------------------------------
+
+#if UNLOG_ENABLED
+
+#define UN_LOG( InMacroArgs, VerbosityName, Message, ... ) \
+    UnlogMacroHelpers::Run< false, UnlogMacroHelpers::TMacroOptions< UnlogMacroHelpers::TMacroArgs< InMacroArgs >, Unlog > >( ELogVerbosity::VerbosityName, TEXT( Message ), ##__VA_ARGS__);
+
+#define UN_LOGF( InMacroArgs, VerbosityName, Message, ... ) \
+    UnlogMacroHelpers::Run< true, UnlogMacroHelpers::TMacroOptions< UnlogMacroHelpers::TMacroArgs< InMacroArgs >, Unlog > >( ELogVerbosity::VerbosityName, TEXT( Message ), ##__VA_ARGS__);
+
+#define UN_CLOG( Condition, InMacroArgs, VerbosityName, Message, ... ) \
+    { \
+        if( Condition ) \
+        {\
+            UnlogMacroHelpers::Run< false, UnlogMacroHelpers::TMacroOptions< UnlogMacroHelpers::TMacroArgs< InMacroArgs >, Unlog > >( ELogVerbosity::VerbosityName, TEXT( Message ), ##__VA_ARGS__); \
+        }\
     }
-
-    struct Location
-    {
-        FORCEINLINE static void Display(UObject* Owner, const FVector& Position, const FColor& Color = FColor::Red, float Radius = 10.f)
-        {
-            DrawDebugSphere(Owner->GetWorld(), Position, Radius, 12, Color, false, -1.f, SDPG_World, 2.f);
-            DrawLabel(Owner->GetWorld(), Position, TEXT("Test position"), Position.ToString());
-            FVisualLogger::GeometryShapeLogf(Owner, "Test", ELogVerbosity::Log, Position, Radius, Color, TEXT(""));//, ##__VA_ARGS__)
-        }
-    };
-
-    struct Direction
-    {
-        FORCEINLINE static void Display(UObject* Owner, const FVector& Start, const FVector& Direction, const FColor& Color = FColor::Cyan)
-        {
-            DrawDebugDirectionalArrow(Owner->GetWorld(), Start, Start + (Direction.GetSafeNormal() * 100.f), 10.f, Color, true, -1.f, SDPG_World, 2.f);
-            DrawLabel(Owner->GetWorld(), Direction, TEXT("Test direction"), Direction.ToString());
-            FVisualLogger::ArrowLogf(Owner, "Test", ELogVerbosity::Log, Start, Start + Direction, Color, TEXT(""));//, ##__VA_ARGS__)
-        }
-    };
-};
-
-
-// ------------------------------------------------------------------------------------
-// Testing
-// ------------------------------------------------------------------------------------
-namespace UnlogTesting
-{
-    // Simple test to ensure everything compiles correctly; outputs not tested
-    void CompileTest()
-    {
-        UNLOG_CATEGORY(TestCategory);
-
-        using Unlog = TUnlog<>;
-               
-        // Specific category
-        UNLOG(TestCategory, Log, "A");
-        UNLOG(TestCategory, Warning, "B");
-        UNLOG(TestCategory, Error, "C");
-        UNLOG(TestCategory, Verbose, "D");
-
-        Unlog::Log<TestCategory>("A");
-        Unlog::Warn<TestCategory>("B");
-        Unlog::Error<TestCategory>("C");
-        Unlog::Verbose<TestCategory>("D");
-
-        // Derive category
-        UNLOG(, Log, "A");
-        Unlog::Log("A");
-
-        // Format - numbered args
-        const FString ExampleString( TEXT("Hey") );
-        const int32 ExampleInt = 42;
-        Unlog::Log("{0}: {1}", ExampleString, ExampleInt);
-        UNLOG(,Log,"{0}: {1}", ExampleString, ExampleInt);
-
-        // Format - printf
-        Unlog::Logf(TEXT("%s: %d"), *ExampleString, ExampleInt);
-        UNLOGF(,Log, "%s: %d", *ExampleString, ExampleInt);
-
-        // Using custom logger
-        using CustomUnlog = TUnlog<>::WithCategory< TestCategory >::WithTargets< Target::TGameScreen< 10, FColor::Yellow > >;
-        CustomUnlog::Error("X");
-        UNLOG(CustomUnlog, Error, "X");
-
-        // Contional logging
-        const bool Value = false;
-        Unlog::Warn(Value, "Y");
-        //Unlog::Warn([]{return false;}, "Y");
-        Unlog::Warnf(Value, TEXT("Y"));
-        //Unlog::Warnf([] {return false; }, TEXT("Y"));
-        UNCLOG(Value, ,Warning, "Y");
-        UNCLOGF(Value, , Warning, "Y");
+#define UN_CLOGF( Condition, InMacroArgs, VerbosityName, Message, ... ) \
+    {\
+        if( Condition ) \
+        {\
+            UnlogMacroHelpers::Run< true, UnlogMacroHelpers::TMacroOptions< UnlogMacroHelpers::TMacroArgs< InMacroArgs >, Unlog > >( ELogVerbosity::VerbosityName, TEXT( Message ), ##__VA_ARGS__); \
+        }\
     }
-}
+#else
+#define UN_LOG(...) UNLOG_COMPILED_OUT
+#define UN_LOGF(...) UNLOG_COMPILED_OUT
+#define UN_CLOG(...) UNLOG_COMPILED_OUT
+#define UN_CLOGF(...) UNLOG_COMPILED_OUT
+#endif // UNLOG_ENABLED
