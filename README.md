@@ -111,8 +111,8 @@ You can also customize the logger with the templated builder pattern:
 
 // Example B: Logger with custom output targets and a different default category
 UNLOG_CATEGORY( MyLogCategory );
-using Unlog = TUnlog<>::WithTargets< Target::UELog, Target::Viewport >
-					  ::WithDefaultCategory< MyLogCategory >;
+using Unlog = 	TUnlog<>::WithTargets< Target::UELog, Target::Viewport >
+			::WithDefaultCategory< MyLogCategory >;
 ```
 
 > [!IMPORTANT]
@@ -122,9 +122,8 @@ You're also free use this area to declare global categories and other loggers:
 
 ```cpp
 UNLOG_CATEGORY( GlobalCategory );
-using ScreenLogger = TUnlog<>
-					::WithTargets< Target::Viewport >
-					::WithCategory< GlobalCategory >;
+using ScreenLogger = TUnlog<>::WithTargets< Target::Viewport >
+			     ::WithCategory< GlobalCategory >;
 ```
 
 > [!NOTE]
@@ -181,10 +180,10 @@ UNCLOG( !bIsActive, Category, Warning )( "Trying to execute operation when compo
 By default Unlog uses the numbered format approach to incorporate values into the message string.
 ```cpp
 Unlog::Log( "Object '{0}' created at {1} with value {2}", 
-			GetNameSafe(MaterialExpression), FDateTime::Now().ToString(), 42 );
+	     GetNameSafe(MaterialExpression), FDateTime::Now().ToString(), 42 );
 //Or
 UNLOG(Log)( "Object '{0}' created at {1} with value {2}", 
-			GetNameSafe(MaterialExpression), FDateTime::Now().ToString(), 42 );
+	     GetNameSafe(MaterialExpression), FDateTime::Now().ToString(), 42 );
 // Output:
 // > Object 'MaterialExpression_0' created at 2023.08.23-19.58.49 with value 42
 ```
@@ -193,10 +192,10 @@ UNLOG(Log)( "Object '{0}' created at {1} with value {2}",
 Or you can always use the old trustable printf by using the "f" suffix function variants:
 ```cpp
 Unlog::Logf( "Object %s created at %s with value %d", 
-			*GetNameSafe(MaterialExpression), *FDateTime::Now().ToString(), 42 );
+	     *GetNameSafe(MaterialExpression), *FDateTime::Now().ToString(), 42 );
 //Or
 UNLOGF(Log)( "Object %s created at %s with value %d", 
-			*GetNameSafe(MaterialExpression), *FDateTime::Now().ToString(), 42 );
+	     *GetNameSafe(MaterialExpression), *FDateTime::Now().ToString(), 42 );
 
 // Output:
 // > Object 'MaterialExpression_0' created at 2023.08.23-19.58.49 with value 42
