@@ -119,6 +119,7 @@ public:
     }
 };
 
+#if UNLOG_ENABLED
 template< typename TCategory >
 struct FUnlogScopedCategory
 {
@@ -132,7 +133,9 @@ struct FUnlogScopedCategory
         Unlogger::Get().PopCategory();
     }
 };
+#endif
 
+#if UNLOG_ENABLED
 /**
 * Creates a new Unlog category.
 * Can be used anywhere (headers, inside .cpp files, inside classes or functions)
@@ -156,6 +159,12 @@ friend class UnlogCategoryCRTP< CategoryName >;\
 #define UNLOG_CATEGORY_SCOPED(CategoryName) \
     UNLOG_CATEGORY(CategoryName) \
     UNLOG_CATEGORY_PUSH(CategoryName)
+
+#else
+#define UNLOG_CATEGORY( CategoryName ) class CategoryName {};
+#define UNLOG_CATEGORY_PUSH( CategoryName ) UNLOG_COMPILED_OUT
+#define UNLOG_CATEGORY_SCOPED( CategoryName ) UNLOG_CATEGORY( CategoryName )
+#endif
 
 // Create the default category used by Unlog
 UNLOG_CATEGORY(LogGeneral)
@@ -194,17 +203,6 @@ public:
         return Targets;
     }
 
-    template< typename TCategory >
-    void SetDefaultCategory()
-    {
-        DefaultCategory = &TCategory::Static();
-    }
-
-    UnlogCategoryBase& GetDefaultCategory()
-    {
-        return DefaultCategory ? *DefaultCategory : LogGeneral::Static();
-    }
-
 private:
     TArray<TSharedRef<UnlogRuntimeTargetBase>> Targets;
     UnlogCategoryBase* DefaultCategory;
@@ -235,7 +233,6 @@ struct UnlogDefaultRuntimeSettings : public RuntimeSettingsCRTP<UnlogDefaultRunt
 public:
     void PopulateSettings()
     {
-        SetDefaultCategory<LogGeneral>();
     }
 
     using DefaultSettings = LogGeneral;
@@ -484,7 +481,6 @@ public:
 // 
 // Could technically be repurposed to selectively run other code besides logging.
 // ------------------------------------------------------------------------------------
-
 template <typename ActualType>
 class UnlogContextBase
 {
