@@ -1,6 +1,6 @@
 # Unlog
 
-Unlog is a header only library made for Unreal Engine that aims to make logging more effortless and featureful. Some of the features are still experimental are prone to changing. Please leave some feedback on our Issues page. 
+Unlog is a header only library made for Unreal Engine that aims to make logging more effortless and feature-full. Some of the features are still experimental are prone to changing. Please leave some feedback on our Issues page. 
 
 ##  Feature list
 
@@ -8,7 +8,7 @@ Feature | Status
 --- | ---
 Define categories at any scope with just one line of code | ✅
 Apply a log category based on scope | ✅
-Easily write to other output targets (e.g ingame viewport, [Message Log](https://unrealcommunity.wiki/message-log-4wzqj97j)) | ✅
+Easily write to other output targets (e.g in-game viewport, [Message Log](https://unrealcommunity.wiki/message-log-4wzqj97j)) | ✅
 Modern C++ logging syntax with type safety  | ✅
 Support for retro-compatible UE_LOG macro syntax using UN_LOG | ✅
 Create your own logging targets | ✅
@@ -36,7 +36,7 @@ virtual void BeginPlay() override
 	// Option B (Experimental): Log using the custom macro options
 	UNLOG( MeaningOfLifeCategory, Log )( "Evaluating the meaning of life" );
 
-	// Option C (Retrocompatible): Use the UE_LOG syntax
+	// Option C (Retro-compatible): Use the UE_LOG syntax
 	UN_LOG( MeaningOfLifeCategory, Log, "Evaluating the meaning of life ") 
 }
 ```
@@ -76,21 +76,21 @@ void Execute()
 		GoHomeRoutine(); 
 	}
 
-	Unlog::Log("Succefuly finished routine evaluation");
+	Unlog::Log("Successfully finished routine evaluation");
 }
 
 // Output:
 // > RoutineEvaluation: Started routine evaluation
 // > GoHomeRoutine: Character 'Gandalf' starting routine
 // > GoHomeRoutine: Error: Character 'Gandalf' unable to GoHome due to colliding wall
-// > RoutineEvaluation: Succefuly finished routine evaluation
+// > RoutineEvaluation: Successfully finished routine evaluation
 ```
 
 ## 📀 Compatibility
-Unlog has been tested to work from UE 4.26 to UE 5.3. Since the library targets C++14 features, it should teoretically support even older engine versions. It has also been tested on all the major operating systems: Windows, Linux and MacOS with their respective toolchains.
+Unlog has been tested to work from UE 4.26 to UE 5.3. Since the library targets C++14 features, it should theoretically support even older engine versions. It has also been tested on all the major operating systems: Windows, Linux and MacOS with their respective toolchains.
 
 ## ☯ What about UE_LOG?
-UE_LOG is the tried and tested method of logging in Unreal which is extensively used across thousands of games and projects. It's solid. It also means it's less accepting of changes, some of which could be benefitial to iteration times and usability. Since this project is an attempt to find ways to enhance logging in Unreal, we're willing to sacrifice some of this stability for more features. 
+UE_LOG is the tried and tested method of logging in Unreal which is extensively used across thousands of games and projects. It's solid. It also means it's less accepting of changes, some of which could be beneficial to iteration times and usability. Since this project is an attempt to find ways to enhance logging in Unreal, we're willing to sacrifice some of this stability for more features. 
 
 ## 🔧 Setup
 To use Unlog clone this repository into the Source folder of your project or plugin. After cloning the folder structure should resemble `<ProjectName>/Source/Unlog/Unlog.h`.
@@ -134,7 +134,7 @@ using ScreenLogger = TUnlog<>::WithTargets< Target::Viewport >
 
 Unlog is totally free for non-commercial purposes and most commercial projects — no licenses need to be purchased for projects with a budget (or revenue) below $250000.
 
-This basically means 99% percent of users won't need to pay anything to use it. Instead we believe that if medium/large developers ever start to extract value out of this library, at their scale, then they're probabaly at a good position to contribute directly towards its development by acquiring a moderatly priced commercial license (which also provides other boons). 
+This basically means 99% percent of users won't need to pay anything to use it. Instead we believe that if medium/large developers ever start to extract value out of this library, at their scale, then they're probably at a good position to contribute directly towards its development by acquiring a moderately priced commercial license (which also provides other boons). 
 
 Please reach out to us if you've got any queries: `unlog@guganana.com` 
 
@@ -248,4 +248,4 @@ Using the UNLOG macro 100% guarantees the strings are culled. Using the logging 
 
 ## 👏 Appreciation section
 
-Shoutout to https://github.com/ChristianPanov/lwlog which has been a good source of inspiration for some of the code design patterns.
+Shout-out to https://github.com/ChristianPanov/lwlog which has been a good source of inspiration for some of the code design patterns.

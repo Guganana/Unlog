@@ -688,7 +688,7 @@ struct TUnlog
     template< typename... Targets >
     using WithTargets = TUnlog< Target::TMultiTarget<Targets...>, InCategoryPicker >;
 
-    // Similar to WithTargets but comulative to whatever configuration it had before. 
+    // Similar to WithTargets but cumulative to whatever configuration it had before. 
     template< typename... Targets >
     using AddTarget = TUnlog< Target::TMultiTarget<InTargetOptions, Targets...>, InCategoryPicker >;
 
@@ -831,7 +831,7 @@ namespace UnlogMacroHelpers
 // ------------------------------------------------------------------------------------
 //  Unlog Legacy Macros 
 // 
-//  Same syntax as UE_LOG and can be easily retrofited in codebases that were
+//  Same syntax as UE_LOG and can be easily retrofitted in code-bases that were
 //  already using it.
 // ------------------------------------------------------------------------------------
 
