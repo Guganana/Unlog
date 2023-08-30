@@ -84,7 +84,7 @@ void Execute()
 }
 
 // Output:
-// > RoutineEvaluation: Started routine evaluation
+// > RoutineEvaluation: Starting routine evaluation
 // > GoHomeRoutine: Character 'Gandalf' starting routine
 // > GoHomeRoutine: Error: Character 'Gandalf' unable to GoHome due to colliding wall
 // > RoutineEvaluation: Successfully finished routine evaluation
