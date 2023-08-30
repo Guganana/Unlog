@@ -7,7 +7,7 @@ Unlog is a header only library made for Unreal Engine that aims to make logging 
 Feature | Status
 --- | ---
 Define categories at any scope with just one line of code | ✅
-Apply a log category based on scope | ✅
+Automatically infer category based on scoped categories | ✅
 Easily write to other output targets (e.g in-game viewport, [Message Log](https://unrealcommunity.wiki/message-log-4wzqj97j)) | ✅
 Modern C++ logging syntax with type safety  | ✅
 Support for retro-compatible UE_LOG macro syntax using UN_LOG | ✅
