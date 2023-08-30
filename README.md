@@ -45,11 +45,15 @@ virtual void BeginPlay() override
 You can also remove the category altogether so Unlog can implicitly pick the category to use. 
 ```cpp
 // Automatically picks the category to use when none is specified
-Unlog::Log( "Starting calculation" ); 
+Unlog::Log( "Starting calculation" );
+// Output:
+//> LogGeneral: Starting calculation
 ```
 ```cpp
  // Same but using the macro option
 UNLOG( Log )( "Starting calculation" );
+// Output:
+//> LogGeneral: Starting calculation
 ```
 >[!NOTE]
 > When omitting the category, it will first try to pick any scoped category that is part of the stack or the default category defined on the [setup](#🔧-setup) 
