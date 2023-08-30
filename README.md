@@ -129,17 +129,6 @@ using ScreenLogger = TUnlog<>::WithTargets< Target::Viewport >
 > [!NOTE]
 > Since Unlog is a header only solution, it doesn't need to incorporated into a specific module to export symbols.
 
-
-## 💶License and Redistribution
-
-Unlog is totally free for non-commercial purposes and most commercial projects — no licenses need to be purchased for projects with a budget (or revenue) below $250000.
-
-This basically means 99% percent of users won't need to pay anything to use it. Instead we believe that if medium/large developers ever start to extract value out of this library, at their scale, then they're probably at a good position to contribute directly towards its development by acquiring a moderately priced commercial license (which also provides other boons). 
-
-Please reach out to us if you've got any queries: `unlog@guganana.com` 
-
-https://github.com/Guganana/Unlog/blob/122af35c10745499bddd47e0471976b093146da6/LICENSE#L1-L10
-
 ## ⤴️ Pull requests
 Not taking in pull requests for now. Sorry!
 
@@ -243,6 +232,18 @@ The UNLOG macro automatically wraps the format text with the TEXT() macro so you
 Disabling Unlog will automatically cull out string literals used in logs from the compilation. This helps making the program smaller (even if by just a fraction) and stops potentially sensitive or redundant information to reach the user.
 
 Using the UNLOG macro 100% guarantees the strings are culled. Using the logging functions will almost always result on culling when running at least the minimum level of compiler optimizations (tested on MSVC locally and on gcc using godbolt.com), but it can depend if other functions are being called as part of the logging function arguments.
+
+---
+
+## 💶License and Redistribution
+
+Unlog is totally free for non-commercial purposes and most commercial projects — no licenses need to be purchased for projects with a budget (or revenue) below $250000.
+
+This basically means 99% percent of users won't need to pay anything to use it. Instead we believe that if medium/large developers ever start to extract value out of this library, at their scale, then they're probably at a good position to contribute directly towards its development by acquiring a moderately priced commercial license (which also provides other boons). 
+
+Please reach out to us if you've got any queries: `unlog@guganana.com` 
+
+https://github.com/Guganana/Unlog/blob/122af35c10745499bddd47e0471976b093146da6/LICENSE#L1-L10
 
 ---
 
