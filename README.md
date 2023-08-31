@@ -243,9 +243,9 @@ Using the UNLOG macro 100% guarantees the strings are culled. Using the logging 
 
 ## 💶License and Redistribution
 
-Unlog is totally free for non-commercial purposes and most commercial projects — no licenses need to be purchased for projects with a budget (or revenue) below $250000.
+Unlog is totally free for non-commercial purposes and most commercial projects — no licenses need to be purchased for projects with a budget (or revenue) below $250K.
 
-This basically means 99% percent of users won't need to pay anything to use it. Instead we believe that if medium/large developers ever start to extract value out of this library, at their scale, then they're probably at a good position to contribute directly towards its development by acquiring a moderately priced commercial license (which also provides other boons). 
+This basically means 99% percent of users won't need to pay anything to use it. Instead we believe that __if larger developers ever start to extract value out of this library__, at their scale, then they're probably at a good position to contribute directly towards its development by acquiring a moderately priced commercial license (which also provides other boons). We want to make this process more transparent in the future, but our focus is on growing the library first.
 
 Please reach out to us if you've got any queries: `unlog@guganana.com` 
 
