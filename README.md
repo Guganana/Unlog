@@ -249,7 +249,7 @@ This basically means 99% percent of users won't need to pay anything to use it. 
 
 Please reach out to us if you've got any queries: `unlog@guganana.com` 
 
-https://github.com/Guganana/Unlog/blob/122af35c10745499bddd47e0471976b093146da6/LICENSE#L1-L10
+https://github.com/Guganana/Unlog/blob/122af35c10745499bddd47e0471976b093146da6/LICENSE#L1-L12
 
 ---
 
