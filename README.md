@@ -118,7 +118,7 @@ You can also customize the logger with the templated builder pattern:
 // Example B: Logger with custom output targets and a different default category
 UNLOG_CATEGORY( MyLogCategory );
 using Unlog = 	TUnlog<>::WithTargets< Target::UELog, Target::Viewport >
-						::WithDefaultCategory< MyLogCategory >;
+			::WithDefaultCategory< MyLogCategory >;
 ```
 
 > [!IMPORTANT]
@@ -129,7 +129,7 @@ You're also free use this area to declare global categories and other loggers:
 ```cpp
 UNLOG_CATEGORY( GlobalCategory );
 using ScreenLogger = TUnlog<>::WithTargets< Target::Viewport >
-			     			 ::WithCategory< GlobalCategory >;
+			     ::WithCategory< GlobalCategory >;
 ```
 
 > [!NOTE]
@@ -200,8 +200,8 @@ UNLOGF(Log)( "Object %s created at %s with value %d",
 At any point you can create a custom logger to output to other targets:
 ```cpp
 using MyLogger = TUnlog<>
-				::WithCategory< MyCategory >
-				::WithTargets< Target::TViewport< 10, FColor::Red > >;
+		::WithCategory< MyCategory >
+		::WithTargets< Target::TViewport< 10, FColor::Red > >;
 
 MyLogger::Error("Failed to spawn actor!");
 
