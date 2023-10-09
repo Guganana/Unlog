@@ -3,6 +3,10 @@
 #pragma once
 
 #include <CoreMinimal.h>
+#include <Misc/EngineVersion.h>
+#include <Misc/FileHelper.h>
+#include <Templates/EnableIf.h>
+#include <Templates/IsArrayOrRefOfType.h>
 
 #define UNLOG_VERSION TEXT("0.1")
 #define UNLOG_ENABLED (!UE_BUILD_SHIPPING)

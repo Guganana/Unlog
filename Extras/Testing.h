@@ -11,6 +11,7 @@ struct UnlogTesting
     // Simple test to ensure everything compiles correctly; outputs are not tested
     static void CompileTest()
     {
+        using Unlog = TUnlog<>;
         UNLOG_CATEGORY(TestCategory)
 
         // Specific category
